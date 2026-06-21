@@ -3715,7 +3715,10 @@ startMainAnimationLoop = function()
             local vy = hrp.AssemblyLinearVelocity.Y
 
             -- Filtro agresivo para escaleras R6: Ignorar caídas leves (rebotes o jitter) incluso quieto
-            if inAir and currentState ~= Enum.HumanoidStateType.Jumping and vy > -60 then
+            -- También ignoramos si estamos escalando (Doors stairs)
+            if isClimbing then
+                inAir = false
+            elseif inAir and currentState ~= Enum.HumanoidStateType.Jumping and vy > -60 then
                 inAir = false
             end
 
@@ -3779,9 +3782,12 @@ startMainAnimationLoop = function()
         local inAir = (humanoid.FloorMaterial == Enum.Material.Air) and (isJumpingState or currentState == Enum.HumanoidStateType.Freefall)
         local verticalVelocity = hrp.AssemblyLinearVelocity.Y
 
-        -- FILTRO AGRESIVO PARA ESCALERAS R15:
-        -- Ignoramos caídas si no estamos saltando y la velocidad vertical no es profunda (evita fall en escalones o quieto)
-        if inAir and not isJumpingState and verticalVelocity > -60 then
+        -- FILTRO AGRESIVO PARA ESCALERAS R15 Y R6:
+        -- Ignoramos caídas si estamos escalando (Doors stairs) o si no estamos saltando y la velocidad vertical no es profunda
+        if isClimbing then
+            inAir = false
+            isJumpingState = false
+        elseif inAir and not isJumpingState and verticalVelocity > -60 then
             inAir = false
         end
 
@@ -3973,12 +3979,14 @@ startMainAnimationLoop = function()
                     fallAnimTrack:Play(0.2)
                 end
             elseif verticalVelocity > 0 then
+                -- Subiendo (Jump)
                 if fallAnimTrack and fallAnimTrack.IsPlaying then fallAnimTrack:Stop(0.2) end
                 if jumpAnimTrack and not jumpAnimTrack.IsPlaying then
                     jumpAnimTrack:Play(0.2)
                     jumpAnimTrack:AdjustSpeed(1)
                 end
             else
+                -- Cayendo (Fall)
                 if jumpAnimTrack and jumpAnimTrack.IsPlaying then jumpAnimTrack:Stop(0.2) end
                 if fallAnimTrack and not fallAnimTrack.IsPlaying then
                     fallAnimTrack:Play(0.2)
